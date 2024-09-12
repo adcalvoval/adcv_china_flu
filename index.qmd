@@ -1,0 +1,175 @@
+---
+title: "Influenza A H7N9 in China, 2013"
+format: dashboard
+theme: lux
+---
+
+```{r include=F}
+# Load packages 
+if(!require(pacman)) install.packages("pacman")
+pacman::p_load(tidyverse, outbreaks, bslib, bsicons, shiny, 
+               rgeoboundaries, plotly, htmltools, reactable)
+
+# view data
+head(outbreaks::fluH7N9_china_2013)
+View(fluH7N9_china_2013)
+```
+
+```{r}
+flu_cases <- fluH7N9_china_2013 %>%
+  summarise(total_cases = n())
+
+hospitalisations <- fluH7N9_china_2013 %>% 
+  group_by(date_of_hospitalisation) %>% 
+  summarise(total_hospitalisations = sum(!is.na(date_of_hospitalisation)))
+
+deaths <- fluH7N9_china_2013 %>% 
+  filter(outcome == "Death") %>% 
+  summarise(total_deaths = n())
+
+
+cases_province <- fluH7N9_china_2013 %>% 
+  group_by(province) %>% 
+  summarise(total_cases_province = n()) %>% 
+  arrange(-total_cases_province)
+
+
+
+top_provinces <- cases_province %>% 
+  arrange(desc(total_cases_province)) %>% 
+  mutate(tooltip_label = paste(province, 
+                               total_cases_province, 
+                               sep = ": ")) %>% 
+  ggplot(aes(y = reorder(province, total_cases_province), 
+             x = total_cases_province,
+             text = tooltip_label)) + 
+  geom_col(fill = "deepskyblue4") + 
+  labs(x = "Number of Cases",
+       y = "") + 
+  theme(legend.position = "none") +
+  theme_minimal()
+
+top_provinces_ggplotly <- 
+  ggplotly(top_provinces, tooltip = "text")
+
+
+
+```
+
+# HOME 
+
+## Row 1 {height=20%}
+
+```{r}
+value_box(
+  title = "Total Cases",
+  value = flu_cases,
+  showcase = bsicons::bs_icon("virus"),
+  theme = value_box_theme(bg = "#518fd6")
+)
+```
+
+```{r}
+value_box(
+  title = "Total Hospitalizations",
+  value = sum(hospitalisations$total_hospitalisations),
+  showcase = bsicons::bs_icon("hospital"),
+  theme = value_box_theme(bg = "#214773")
+)
+```
+
+```{r}
+value_box(
+  title = "Total Deaths",
+  value = deaths,
+  showcase = bsicons::bs_icon("file-medical"),
+  theme = value_box_theme(bg = "#3f71ab")
+)
+```
+
+
+
+## Row 2 {height=80%}
+
+### {width=35%}
+
+```{r}
+top_provinces_ggplotly
+```
+
+
+### {width=65%}
+
+```{r results='hide', message=FALSE, warning = FALSE}
+pacman::p_load(outbreaks, rgeoboundaries, plotly)
+
+### MAP OF CASES PER PROVINCE
+province_summary <- fluH7N9_china_2013 %>% 
+  group_by(province) %>% 
+  summarise(total_cases = n()) 
+
+china_map <- rgeoboundaries::gb_adm1("china")
+
+# Check the keys to see if join will be successful
+setdiff(province_summary$province, china_map$shapeName)
+setdiff(china_map$shapeName, province_summary$province)
+# Some work to be done to harmonize these
+
+china_map <- china_map %>%
+  # Remove the strings Province, Municipality and Autonomous Region 
+  # to allow matching
+  mutate(province = str_trim(
+    str_remove(shapeName, "Province|Municipality|Autonomous Region")
+  ))
+
+# Check if join will work fine
+setdiff(province_summary$province, china_map$province)
+
+# Fix Guangdong, which based on a quick Google is actually Guangzhou
+china_map <- china_map %>% 
+  mutate(province = if_else(province == "Guangzhou", "Guangdong", province)) 
+  
+# Check again
+setdiff(province_summary$province, china_map$province)
+
+# Now join
+china_map_joined <- 
+  left_join(china_map, province_summary, by = "province") %>% 
+  # Create tooltip label 
+  mutate(tooltip_label = paste0(province, ": ", total_cases))
+
+china_map_plot <- ggplot(china_map_joined) +
+  geom_sf(aes(fill = total_cases, text = tooltip_label)) + 
+  theme_void() +
+  labs(fill = "Number of Cases") + 
+  theme(legend.position = "none")
+
+china_map_plot_ggplotly <- 
+  ggplotly(china_map_plot, tooltip = "text")
+```
+
+```{r title="Map of Provinces by Number of Cases"}
+china_map_plot_ggplotly
+```
+
+
+# DOWNLOAD DATA
+
+```{r message=FALSE}
+# Load packages 
+if(!require(pacman)) install.packages("pacman")
+pacman::p_load(htmltools, reactable, outbreaks)
+
+htmltools::browsable(
+  tagList(
+    reactable(fluH7N9_china_2013, 
+              elementId = "china-flu-table", 
+              searchable = T, 
+              filterable = T), 
+    
+tags$button("Download as CSV", 
+            onclick = "Reactable.downloadDataCSV('china-flu-table')")
+  )
+)
+```
+
