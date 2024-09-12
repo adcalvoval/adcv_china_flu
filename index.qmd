@@ -64,13 +64,11 @@ cum_sum_deaths <- fluH7N9_china_2013 %>%
   mutate(deaths = case_when(outcome == "Death" ~ 1,
                                 TRUE ~ 0)) %>% 
   mutate(cum_deaths = cumsum(deaths)) 
-  
 
-cum_sum_hosp <- fluH7N9_china_2013 %>% 
-  filter(!is.na(date_of_onset)) %>% 
-  group_by(date_of_onset) %>%
-  mutate(cumsum(count=n())) %>% 
-  arrange(date_of_onset) 
+cum_sum_hosp <- hospitalisations %>% 
+  arrange(date_of_hospitalisation) %>%  
+  mutate(cum_hosp = cumsum(total_hospitalisations))
+ 
 
 
 sparkline <- plot_ly(fluH7N9_china_2013) %>%
@@ -130,7 +128,7 @@ sparkline2 <- plot_ly(fluH7N9_china_2013) %>%
 
 sparkline3 <- plot_ly(fluH7N9_china_2013) %>%
   add_lines(
-    x = ~cum_sum_deaths$date_of_onset, y = ~cum_sum_deaths$cum_deaths,
+    x = ~cum_sum_hosp$date_of_hospitalisation, y = ~cum_sum_hosp$cum_hosp,
     color = I("white"), span = I(1),
     fill = 'tozeroy', alpha = 0.2
   ) %>%
