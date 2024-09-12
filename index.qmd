@@ -66,6 +66,7 @@ cum_sum_deaths <- fluH7N9_china_2013 %>%
   mutate(cum_deaths = cumsum(deaths)) 
 
 cum_sum_hosp <- hospitalisations %>% 
+  filter(!is.na(date_of_hospitalisation)) %>% 
   arrange(date_of_hospitalisation) %>%  
   mutate(cum_hosp = cumsum(total_hospitalisations))
  
