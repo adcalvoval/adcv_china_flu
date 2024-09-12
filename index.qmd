@@ -52,6 +52,108 @@ top_provinces <- cases_province %>%
 top_provinces_ggplotly <- 
   ggplotly(top_provinces, tooltip = "text")
 
+cum_sum_cases <- fluH7N9_china_2013 %>% 
+  filter(!is.na(date_of_onset)) %>% 
+  group_by(date_of_onset) %>%
+  mutate(cumsum(count=n())) %>% 
+  arrange(date_of_onset) 
+
+cum_sum_deaths <- fluH7N9_china_2013 %>% 
+  filter(!is.na(date_of_onset)) %>% 
+  arrange(date_of_onset) %>% 
+  mutate(deaths = case_when(outcome == "Death" ~ 1,
+                                TRUE ~ 0)) %>% 
+  mutate(cum_deaths = cumsum(deaths)) 
+  
+
+cum_sum_hosp <- fluH7N9_china_2013 %>% 
+  filter(!is.na(date_of_onset)) %>% 
+  group_by(date_of_onset) %>%
+  mutate(cumsum(count=n())) %>% 
+  arrange(date_of_onset) 
+
+
+sparkline <- plot_ly(fluH7N9_china_2013) %>%
+  add_lines(
+    x = ~cum_sum_cases$date_of_onset, y = ~cum_sum_cases$count,
+    color = I("white"), span = I(1),
+    fill = 'tozeroy', alpha = 0.2
+  ) %>%
+  layout(
+    xaxis = list(visible = F, showgrid = F, title = ""),
+    yaxis = list(visible = F, showgrid = F, title = ""),
+    hovermode = "x",
+    margin = list(t = 0, r = 0, l = 0, b = 0),
+    font = list(color = "white"),
+    paper_bgcolor = "transparent",
+    plot_bgcolor = "transparent"
+  ) %>%
+  config(displayModeBar = F) %>%
+  htmlwidgets::onRender(
+    "function(el) {
+      el.closest('.bslib-value-box')
+        .addEventListener('bslib.card', function(ev) {
+          Plotly.relayout(el, {'xaxis.visible': ev.detail.fullScreen});
+        })
+    }"
+  )
+
+
+
+
+sparkline2 <- plot_ly(fluH7N9_china_2013) %>%
+  add_lines(
+    x = ~cum_sum_cases$date_of_onset, y = ~cum_sum_cases$count,
+    color = I("white"), span = I(1),
+    fill = 'tozeroy', alpha = 0.2
+  ) %>%
+  layout(
+    xaxis = list(visible = F, showgrid = F, title = ""),
+    yaxis = list(visible = F, showgrid = F, title = ""),
+    hovermode = "x",
+    margin = list(t = 0, r = 0, l = 0, b = 0),
+    font = list(color = "white"),
+    paper_bgcolor = "transparent",
+    plot_bgcolor = "transparent"
+  ) %>%
+  config(displayModeBar = F) %>%
+  htmlwidgets::onRender(
+    "function(el) {
+      el.closest('.bslib-value-box')
+        .addEventListener('bslib.card', function(ev) {
+          Plotly.relayout(el, {'xaxis.visible': ev.detail.fullScreen});
+        })
+    }"
+  )
+
+
+
+sparkline3 <- plot_ly(fluH7N9_china_2013) %>%
+  add_lines(
+    x = ~cum_sum_deaths$date_of_onset, y = ~cum_sum_deaths$cum_deaths,
+    color = I("white"), span = I(1),
+    fill = 'tozeroy', alpha = 0.2
+  ) %>%
+  layout(
+    xaxis = list(visible = F, showgrid = F, title = ""),
+    yaxis = list(visible = F, showgrid = F, title = ""),
+    hovermode = "x",
+    margin = list(t = 0, r = 0, l = 0, b = 0),
+    font = list(color = "white"),
+    paper_bgcolor = "transparent",
+    plot_bgcolor = "transparent"
+  ) %>%
+  config(displayModeBar = F) %>%
+  htmlwidgets::onRender(
+    "function(el) {
+      el.closest('.bslib-value-box')
+        .addEventListener('bslib.card', function(ev) {
+          Plotly.relayout(el, {'xaxis.visible': ev.detail.fullScreen});
+        })
+    }"
+  )
+
+
 
 
 ```
@@ -64,8 +166,8 @@ top_provinces_ggplotly <-
 value_box(
   title = "Total Cases",
   value = flu_cases,
-  showcase = bsicons::bs_icon("virus"),
-  theme = value_box_theme(bg = "#518fd6")
+  theme = value_box_theme(bg = "#518fd6"),
+  showcase = sparkline
 )
 ```
 
@@ -73,7 +175,7 @@ value_box(
 value_box(
   title = "Total Hospitalizations",
   value = sum(hospitalisations$total_hospitalisations),
-  showcase = bsicons::bs_icon("hospital"),
+  showcase = sparkline2,
   theme = value_box_theme(bg = "#214773")
 )
 ```
@@ -82,7 +184,7 @@ value_box(
 value_box(
   title = "Total Deaths",
   value = deaths,
-  showcase = bsicons::bs_icon("file-medical"),
+  showcase = sparkline3,
   theme = value_box_theme(bg = "#3f71ab")
 )
 ```
