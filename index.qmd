@@ -194,7 +194,7 @@ value_box(
 
 ### {width=35%}
 
-```{r}
+```{r title = "Number of Cases by Province"}
 top_provinces_ggplotly
 ```
 
